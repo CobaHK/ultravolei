@@ -1,0 +1,53 @@
+/* Custom color overrides */
+:root {
+    --primary-color: rgb(103, 4, 112);
+    --primary-color-light: rgb(123, 24, 132);
+    --primary-color-dark: rgb(83, 0, 92);
+}
+
+/* Override Tailwind orange colors with custom purple */
+.text-orange-500,
+.text-orange-400 {
+    color: var(--primary-color) !important;
+}
+
+.bg-orange-500,
+.bg-orange-600 {
+    background-color: var(--primary-color) !important;
+}
+
+.bg-orange-500\/90 {
+    background-color: rgba(103, 4, 112, 0.9) !important;
+}
+
+.hover\:text-orange-400:hover,
+.hover\:text-orange-500:hover {
+    color: var(--primary-color-light) !important;
+}
+
+.hover\:bg-orange-600:hover {
+    background-color: var(--primary-color-dark) !important;
+}
+
+.border-orange-500 {
+    border-color: var(--primary-color) !important;
+}
+
+.shadow-orange-500\/10 {
+    --tw-shadow-color: rgba(103, 4, 112, 0.1) !important;
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
+}
+
+.from-orange-500 {
+    --tw-gradient-from: var(--primary-color) !important;
+    --tw-gradient-to: rgba(103, 4, 112, 0) !important;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+.to-orange-600 {
+    --tw-gradient-to: var(--primary-color-dark) !important;
+}
+
+.focus\:ring-orange-500:focus {
+    --tw-ring-color: var(--primary-color) !important;
+}
