@@ -5,12 +5,16 @@ on:
     branches:
       - main
 
+# give the workflow explicit permissions so deploy action can run
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,6 +29,21 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Show dist contents (debug)
+        run: |
+          echo "=== pwd ==="
+          pwd
+          echo "=== node version ==="
+          node -v || true
+          echo "=== npm version ==="
+          npm -v || true
+          echo "=== ls -la workspace ==="
+          ls -la
+          echo "=== ls -la dist ==="
+          ls -la dist || true
+          echo "=== find dist ==="
+          find dist -maxdepth 3 -type f -print || true
 
       - name: Upload artifact for pages
         uses: actions/upload-pages-artifact@v1
