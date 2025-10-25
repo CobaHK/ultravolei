@@ -45,18 +45,13 @@ jobs:
           echo "=== find dist ==="
           find dist -maxdepth 3 -type f -print || true
 
-      - name: Upload artifact for pages
-        uses: actions/upload-pages-artifact@v3
+      - name: Publish to gh-pages (peaceiris)
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: ./dist
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
 
-  deploy:
-    name: Deploy to GitHub Pages
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      pages: write
-      id-token: write
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v2
+# Note: we switched to pushing the built `dist/` to the `gh-pages` branch using
+# `peaceiris/actions-gh-pages`. This approach avoids depending on the Pages
+# signed-artifact flow and works reliably if Pages is configured to serve from
+# the `gh-pages` branch (Settings → Pages → Source = gh-pages / (root)).
