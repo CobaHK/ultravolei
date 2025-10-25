@@ -7,7 +7,7 @@ on:
 
 # give the workflow explicit permissions so deploy action can run
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
