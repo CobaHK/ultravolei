@@ -14,6 +14,7 @@ import {
     ClockIcon,
     MapPinIcon,
 } from './constants';
+import holdImage from './hold.jpg';
 
 const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -80,7 +81,7 @@ const HomePage: React.FC = () => {
     return (
         <div className="space-y-16 md:space-y-24">
             {/* Hero Section */}
-            <section className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center bg-cover bg-center" style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('./hold.jpg')` }}>
+            <section className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center bg-cover bg-center" style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('${holdImage}')` }}>
                 <div className="z-10 px-4">
                     <div className="mb-4 flex justify-center items-center gap-4 flex-wrap">
                         <span className="bg-orange-500/90 text-white px-4 py-2 rounded-full text-sm font-semibold uppercase tracking-wider">Naipes Feminino</span>

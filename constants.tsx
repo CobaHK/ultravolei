@@ -1,6 +1,16 @@
 
 import type { Player, Game, Sponsor, InstagramPost } from './types';
 
+// import sponsor images so Vite includes them in the build output
+import sponsor1 from './patrocinios/Captura de tela 2025-10-25 124806.png';
+import sponsor2 from './patrocinios/Captura de tela 2025-10-25 124809.png';
+import sponsor3 from './patrocinios/Captura de tela 2025-10-25 124812.png';
+import sponsor4 from './patrocinios/Captura de tela 2025-10-25 124815.png';
+import sponsor5 from './patrocinios/Captura de tela 2025-10-25 124818.png';
+import sponsor6 from './patrocinios/Captura de tela 2025-10-25 124822.png';
+import sponsor7 from './patrocinios/Captura de tela 2025-10-25 124903.png';
+import sponsor8 from './patrocinios/Captura de tela 2025-10-25 124908.png';
+
 export const TEAM_NAME = "UltraVôlei Joinville";
 export const TEAM_SLOGAN = "Garra, União e Paixão Pela Quadra";
 
@@ -30,14 +40,14 @@ export const GAMES: Game[] = [
 ];
 
 export const SPONSORS: Sponsor[] = [
-  { id: 1, name: 'Patrocinador 1', logoUrl: './patrocinios/Captura de tela 2025-10-25 124806.png', websiteUrl: '#', tier: 'gold' },
-  { id: 2, name: 'Patrocinador 2', logoUrl: './patrocinios/Captura de tela 2025-10-25 124809.png', websiteUrl: '#', tier: 'gold' },
-  { id: 3, name: 'Patrocinador 3', logoUrl: './patrocinios/Captura de tela 2025-10-25 124812.png', websiteUrl: '#', tier: 'silver' },
-  { id: 4, name: 'Patrocinador 4', logoUrl: './patrocinios/Captura de tela 2025-10-25 124815.png', websiteUrl: '#', tier: 'silver' },
-  { id: 5, name: 'Patrocinador 5', logoUrl: './patrocinios/Captura de tela 2025-10-25 124818.png', websiteUrl: '#', tier: 'bronze' },
-  { id: 6, name: 'Patrocinador 6', logoUrl: './patrocinios/Captura de tela 2025-10-25 124822.png', websiteUrl: '#', tier: 'bronze' },
-  { id: 7, name: 'Patrocinador 7', logoUrl: './patrocinios/Captura de tela 2025-10-25 124903.png', websiteUrl: '#', tier: 'bronze' },
-  { id: 8, name: 'Patrocinador 8', logoUrl: './patrocinios/Captura de tela 2025-10-25 124908.png', websiteUrl: '#', tier: 'bronze' },
+  { id: 1, name: 'Patrocinador 1', logoUrl: sponsor1, websiteUrl: '#', tier: 'gold' },
+  { id: 2, name: 'Patrocinador 2', logoUrl: sponsor2, websiteUrl: '#', tier: 'gold' },
+  { id: 3, name: 'Patrocinador 3', logoUrl: sponsor3, websiteUrl: '#', tier: 'silver' },
+  { id: 4, name: 'Patrocinador 4', logoUrl: sponsor4, websiteUrl: '#', tier: 'silver' },
+  { id: 5, name: 'Patrocinador 5', logoUrl: sponsor5, websiteUrl: '#', tier: 'bronze' },
+  { id: 6, name: 'Patrocinador 6', logoUrl: sponsor6, websiteUrl: '#', tier: 'bronze' },
+  { id: 7, name: 'Patrocinador 7', logoUrl: sponsor7, websiteUrl: '#', tier: 'bronze' },
+  { id: 8, name: 'Patrocinador 8', logoUrl: sponsor8, websiteUrl: '#', tier: 'bronze' },
 ];
 
 export const INSTAGRAM_POSTS: InstagramPost[] = Array.from({ length: 8 }, (_, i) => ({
