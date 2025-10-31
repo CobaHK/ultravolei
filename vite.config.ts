@@ -5,10 +5,11 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    // when deploying to GitHub Pages for repo `ultravolei` we need a base
-    // so built assets are referenced from the correct subpath.
-    // Use '/ultravolei/' for production and '/' for dev.
-    base: mode === 'production' ? '/ultravolei/' : '/',
+    // A lógica anterior (com /ultravolei/) era para o deploy padrão do gh-pages.
+    // Como agora você está usando um domínio personalizado (www.ultravolei.com.br),
+    // o site é servido a partir da raiz ("/").
+    // Esta é a correção para os erros 404 nos assets.
+    base: '/',
     server: {
       port: 3000,
       host: '0.0.0.0',
