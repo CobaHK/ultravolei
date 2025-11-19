@@ -193,12 +193,6 @@ const AdminDashboard: React.FC = () => {
                                     <p className="text-gray-400 text-sm">Técnico</p>
                                     <p className="text-white font-semibold">{registration.nomeTecnico}</p>
                                 </div>
-                                <div>
-                                    <p className="text-gray-400 text-sm">Contato</p>
-                                    {registration.telefoneTecnico && <p className="text-white">{registration.telefoneTecnico}</p>}
-                                    {registration.emailTecnico && <p className="text-white">{registration.emailTecnico}</p>}
-                                    {!registration.telefoneTecnico && !registration.emailTecnico && <p className="text-gray-500 italic">Não informado</p>}
-                                </div>
                             </div>
 
                             <details className="mb-4">
@@ -208,12 +202,23 @@ const AdminDashboard: React.FC = () => {
                                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {registration.atletas.map((atleta, idx) => (
                                         <div key={idx} className="bg-gray-700/50 p-4 rounded-lg">
-                                            <p className="font-bold text-white">{atleta.nome}</p>
-                                            <p className="text-sm text-gray-400">
-                                                {atleta.tipoDocumento.toUpperCase()}: {atleta.numeroDocumento}
-                                            </p>
-                                            <p className="text-sm text-gray-400">Nascimento: {atleta.dataNascimento}</p>
-                                            <p className="text-sm text-gray-400">Posição: {atleta.posicao} | Número: {atleta.numeroJogador}</p>
+                                            <div className="flex items-start gap-3">
+                                                {atleta.fotoAtleta && (
+                                                    <img 
+                                                        src={atleta.fotoAtleta} 
+                                                        alt={atleta.nome} 
+                                                        className="w-16 h-16 object-cover rounded-lg"
+                                                    />
+                                                )}
+                                                <div className="flex-1">
+                                                    <p className="font-bold text-white">{atleta.nome}</p>
+                                                    <p className="text-sm text-gray-400">
+                                                        {atleta.tipoDocumento.toUpperCase()}: {atleta.numeroDocumento}
+                                                    </p>
+                                                    <p className="text-sm text-gray-400">Nascimento: {atleta.dataNascimento}</p>
+                                                    <p className="text-sm text-gray-400">Número: {atleta.numeroJogador}</p>
+                                                </div>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

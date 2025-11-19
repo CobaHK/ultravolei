@@ -30,15 +30,14 @@ const RegistrationPage: React.FC = () => {
     const [submitSuccess, setSubmitSuccess] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
+    const [athletePhotos, setAthletePhotos] = useState<{ [key: number]: File }>({});
 
     const { register, control, handleSubmit, reset, formState: { errors }, watch } = useForm<TeamRegistration>({
         defaultValues: {
             nomeEquipe: '',
             categoria: 'feminino',
             nomeTecnico: '',
-            telefoneTecnico: '',
-            emailTecnico: '',
-            atletas: [{ nome: '', tipoDocumento: 'cpf', numeroDocumento: '', dataNascimento: '', posicao: '', numeroJogador: '' }]
+            atletas: [{ nome: '', tipoDocumento: 'cpf', numeroDocumento: '', dataNascimento: '', numeroJogador: '' }]
         }
     });
 
@@ -53,6 +52,12 @@ const RegistrationPage: React.FC = () => {
         }
     };
 
+    const handleAthletePhotoChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setAthletePhotos(prev => ({ ...prev, [index]: e.target.files![0] }));
+        }
+    };
+
     const onSubmit = async (data: TeamRegistration) => {
         setIsSubmitting(true);
         setSubmitError(null);
@@ -60,16 +65,33 @@ const RegistrationPage: React.FC = () => {
         try {
             let fotoEquipeUrl = '';
 
-            // Upload da foto se existir
+            // Upload da foto da equipe se existir
             if (photoFile) {
                 const photoRef = ref(storage, `team-photos/${Date.now()}_${photoFile.name}`);
                 await uploadBytes(photoRef, photoFile);
                 fotoEquipeUrl = await getDownloadURL(photoRef);
             }
 
+            // Upload das fotos dos atletas
+            const atletasComFotos = await Promise.all(
+                data.atletas.map(async (atleta, index) => {
+                    let fotoAtletaUrl = '';
+                    if (athletePhotos[index]) {
+                        const photoRef = ref(storage, `athlete-photos/${Date.now()}_${athletePhotos[index].name}`);
+                        await uploadBytes(photoRef, athletePhotos[index]);
+                        fotoAtletaUrl = await getDownloadURL(photoRef);
+                    }
+                    return {
+                        ...atleta,
+                        fotoAtleta: fotoAtletaUrl
+                    };
+                })
+            );
+
             // Salvar no Firestore
             const registrationData = {
                 ...data,
+                atletas: atletasComFotos,
                 fotoEquipe: fotoEquipeUrl,
                 createdAt: serverTimestamp(),
                 status: 'pendente'
@@ -80,6 +102,7 @@ const RegistrationPage: React.FC = () => {
             setSubmitSuccess(true);
             reset();
             setPhotoFile(null);
+            setAthletePhotos({});
             
             // Scroll para o topo
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -148,6 +171,19 @@ const RegistrationPage: React.FC = () => {
 
                             <div>
                                 <label className="block text-sm font-semibold text-gray-300 mb-2">
+                                    Nome do Técnico *
+                                </label>
+                                <input
+                                    type="text"
+                                    {...register('nomeTecnico', { required: 'Nome do técnico é obrigatório' })}
+                                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    placeholder="Nome completo do técnico"
+                                />
+                                {errors.nomeTecnico && <p className="text-red-400 text-sm mt-1">{errors.nomeTecnico.message}</p>}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-300 mb-2">
                                     Categoria *
                                 </label>
                                 <select
@@ -177,52 +213,6 @@ const RegistrationPage: React.FC = () => {
                         </div>
                     </section>
 
-                    {/* Informações do Técnico */}
-                    <section className="mb-10">
-                        <h2 className="text-3xl font-bold uppercase tracking-wider mb-6 pb-3 border-b-2 border-purple-500">
-                            Informações do Técnico
-                        </h2>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                                    Nome do Técnico *
-                                </label>
-                                <input
-                                    type="text"
-                                    {...register('nomeTecnico', { required: 'Nome do técnico é obrigatório' })}
-                                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="Nome completo"
-                                />
-                                {errors.nomeTecnico && <p className="text-red-400 text-sm mt-1">{errors.nomeTecnico.message}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                                    Telefone
-                                </label>
-                                <input
-                                    type="tel"
-                                    {...register('telefoneTecnico')}
-                                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="(47) 99999-9999"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-300 mb-2">
-                                    E-mail
-                                </label>
-                                <input
-                                    type="email"
-                                    {...register('emailTecnico')}
-                                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="email@exemplo.com"
-                                />
-                            </div>
-                        </div>
-                    </section>
-
                     {/* Atletas */}
                     <section className="mb-10">
                         <div className="flex justify-between items-center mb-6 pb-3 border-b-2 border-purple-500">
@@ -231,7 +221,7 @@ const RegistrationPage: React.FC = () => {
                             </h2>
                             <button
                                 type="button"
-                                onClick={() => append({ nome: '', tipoDocumento: 'cpf', numeroDocumento: '', dataNascimento: '', posicao: '', numeroJogador: '' })}
+                                onClick={() => append({ nome: '', tipoDocumento: 'cpf', numeroDocumento: '', dataNascimento: '', numeroJogador: '' })}
                                 className="bg-purple-500 text-white px-4 py-2 rounded-md hover:bg-purple-600 transition-colors font-semibold"
                             >
                                 + Adicionar Atleta
@@ -316,23 +306,6 @@ const RegistrationPage: React.FC = () => {
 
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-300 mb-2">
-                                            Posição *
-                                        </label>
-                                        <select
-                                            {...register(`atletas.${index}.posicao`, { required: 'Posição é obrigatória' })}
-                                            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                        >
-                                            <option value="">Selecione...</option>
-                                            <option value="Levantador(a)">Levantador(a)</option>
-                                            <option value="Líbero">Líbero</option>
-                                            <option value="Ponteiro(a)">Ponteiro(a)</option>
-                                            <option value="Oposto(a)">Oposto(a)</option>
-                                            <option value="Central">Central</option>
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-300 mb-2">
                                             Número do Jogador *
                                         </label>
                                         <input
@@ -341,6 +314,21 @@ const RegistrationPage: React.FC = () => {
                                             className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                             placeholder="Ex: 10"
                                         />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-semibold text-gray-300 mb-2">
+                                            Foto do Atleta
+                                        </label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleAthletePhotoChange(index, e)}
+                                            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600"
+                                        />
+                                        {athletePhotos[index] && (
+                                            <p className="text-green-400 text-sm mt-2">✓ {athletePhotos[index].name}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

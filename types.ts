@@ -37,8 +37,8 @@ export interface Athlete {
   tipoDocumento: 'cpf' | 'rg';
   numeroDocumento: string;
   dataNascimento: string;
-  posicao: string;
   numeroJogador: string;
+  fotoAtleta?: string; // URL da foto no Firebase Storage
 }
 
 export interface TeamRegistration {
@@ -46,8 +46,6 @@ export interface TeamRegistration {
   nomeEquipe: string;
   categoria: 'masculino' | 'feminino' | 'misto';
   nomeTecnico: string;
-  telefoneTecnico?: string;
-  emailTecnico?: string;
   atletas: Athlete[];
   fotoEquipe?: string; // URL da foto no Firebase Storage
   createdAt: Date;
