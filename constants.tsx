@@ -2,14 +2,16 @@
 import type { Player, Game, Sponsor, InstagramPost } from './types';
 
 // import sponsor images so Vite includes them in the build output
-import sponsor1 from './patrocinios/Captura de tela 2025-10-25 124806.png';
-import sponsor2 from './patrocinios/Captura de tela 2025-10-25 124809.png';
-import sponsor3 from './patrocinios/Captura de tela 2025-10-25 124812.png';
-import sponsor4 from './patrocinios/Captura de tela 2025-10-25 124815.png';
-import sponsor5 from './patrocinios/Captura de tela 2025-10-25 124818.png';
-import sponsor6 from './patrocinios/Captura de tela 2025-10-25 124822.png';
-import sponsor7 from './patrocinios/Captura de tela 2025-10-25 124903.png';
-import sponsor8 from './patrocinios/Captura de tela 2025-10-25 124908.png';
+import sponsor1 from './patrocinios/kalter.png';
+import sponsor2 from './patrocinios/braspo.png';
+import sponsor3 from './patrocinios/ideal.png';
+import sponsor4 from './patrocinios/msouza.png';
+import sponsor5 from './patrocinios/facol.png';
+import sponsor6 from './patrocinios/jackson.png';
+import sponsor7 from './patrocinios/vipac.png';
+import sponsor8 from './patrocinios/doce.png';
+import sponsor9 from './patrocinios/karina.png';
+
 
 export const TEAM_NAME = "UltraVôlei Joinville";
 export const TEAM_SLOGAN = "Garra, União e Paixão Pela Quadra";
@@ -48,6 +50,7 @@ export const SPONSORS: Sponsor[] = [
   { id: 6, name: 'Patrocinador 6', logoUrl: sponsor6, websiteUrl: '#', tier: 'bronze' },
   { id: 7, name: 'Patrocinador 7', logoUrl: sponsor7, websiteUrl: '#', tier: 'bronze' },
   { id: 8, name: 'Patrocinador 8', logoUrl: sponsor8, websiteUrl: '#', tier: 'bronze' },
+  { id: 9, name: 'Patrocinador 9', logoUrl: sponsor9, websiteUrl: '#', tier: 'bronze' },  
 ];
 
 export const INSTAGRAM_POSTS: InstagramPost[] = Array.from({ length: 8 }, (_, i) => ({
