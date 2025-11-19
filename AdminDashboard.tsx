@@ -4,11 +4,15 @@ import { signOut } from 'firebase/auth';
 import { db, auth } from './firebaseConfig';
 import { useNavigate } from 'react-router-dom';
 import type { TeamRegistration } from './types';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 const AdminDashboard: React.FC = () => {
     const [registrations, setRegistrations] = useState<(TeamRegistration & { id: string })[]>([]);
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState<'all' | 'pendente' | 'aprovado' | 'rejeitado'>('all');
+    const [imageModal, setImageModal] = useState<string | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -63,6 +67,75 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+        
+        doc.setFontSize(18);
+        doc.text('Inscrições - UltraVôlei Joinville', 14, 22);
+        
+        doc.setFontSize(11);
+        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+        const totalAtletas = filteredRegistrations.reduce((sum, reg) => sum + reg.atletas.length, 0);
+        doc.text(`Total de Equipes: ${filteredRegistrations.length} | Total de Atletas: ${totalAtletas}`, 14, 36);
+
+        const tableData = filteredRegistrations.flatMap((reg) => 
+            reg.atletas.map((atleta) => [
+                reg.nomeEquipe,
+                reg.categoria,
+                reg.nomeTecnico,
+                reg.status.toUpperCase(),
+                atleta.nome,
+                atleta.tipoDocumento.toUpperCase(),
+                atleta.numeroDocumento,
+                atleta.dataNascimento,
+                atleta.numeroJogador,
+            ])
+        );
+
+        autoTable(doc, {
+            head: [['Equipe', 'Categoria', 'Técnico', 'Status', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']],
+            body: tableData,
+            startY: 42,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [103, 4, 112] },
+            columnStyles: {
+                0: { cellWidth: 25 },
+                1: { cellWidth: 20 },
+                2: { cellWidth: 25 },
+                3: { cellWidth: 18 },
+                4: { cellWidth: 30 },
+                5: { cellWidth: 12 },
+                6: { cellWidth: 25 },
+                7: { cellWidth: 20 },
+                8: { cellWidth: 10 },
+            },
+        });
+
+        doc.save(`inscricoes_ultravolei_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
+
+    const exportToExcel = () => {
+        const data = filteredRegistrations.flatMap((reg) => 
+            reg.atletas.map((atleta, idx) => ({
+                'Equipe': reg.nomeEquipe,
+                'Categoria': reg.categoria,
+                'Técnico': reg.nomeTecnico,
+                'Status': reg.status.toUpperCase(),
+                'Atleta': atleta.nome,
+                'Tipo Doc': atleta.tipoDocumento.toUpperCase(),
+                'Documento': atleta.numeroDocumento,
+                'Nascimento': atleta.dataNascimento,
+                'Número': atleta.numeroJogador,
+            }))
+        );
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Inscrições');
+        
+        XLSX.writeFile(wb, `inscricoes_ultravolei_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     const filteredRegistrations = filterStatus === 'all' 
         ? registrations 
         : registrations.filter(r => r.status === filterStatus);
@@ -93,12 +166,34 @@ const AdminDashboard: React.FC = () => {
                     </h1>
                     <p className="text-gray-400">Gerenciar inscrições do campeonato</p>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    className="mt-4 md:mt-0 bg-gray-700 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition-colors"
-                >
-                    Sair
-                </button>
+                <div className="flex gap-2 mt-4 md:mt-0">
+                    <button
+                        onClick={exportToPDF}
+                        className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
+                        title="Exportar para PDF"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+                        </svg>
+                        PDF
+                    </button>
+                    <button
+                        onClick={exportToExcel}
+                        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center gap-2"
+                        title="Exportar para Excel"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+                        </svg>
+                        Excel
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
+                    >
+                        Sair
+                    </button>
+                </div>
             </div>
 
             {/* Stats */}
@@ -184,7 +279,12 @@ const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
                                 {registration.fotoEquipe && (
-                                    <img src={registration.fotoEquipe} alt="Foto da equipe" className="w-24 h-24 object-cover rounded-lg mt-4 md:mt-0" />
+                                    <img 
+                                        src={registration.fotoEquipe} 
+                                        alt="Foto da equipe" 
+                                        className="w-24 h-24 object-cover rounded-lg mt-4 md:mt-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                        onClick={() => setImageModal(registration.fotoEquipe!)}
+                                    />
                                 )}
                             </div>
 
@@ -207,7 +307,8 @@ const AdminDashboard: React.FC = () => {
                                                     <img 
                                                         src={atleta.fotoAtleta} 
                                                         alt={atleta.nome} 
-                                                        className="w-16 h-16 object-cover rounded-lg"
+                                                        className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                                                        onClick={() => setImageModal(atleta.fotoAtleta!)}
                                                     />
                                                 )}
                                                 <div className="flex-1">
@@ -255,6 +356,29 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Image Modal */}
+            {imageModal && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+                    onClick={() => setImageModal(null)}
+                >
+                    <div className="relative max-w-4xl max-h-full">
+                        <button
+                            onClick={() => setImageModal(null)}
+                            className="absolute -top-10 right-0 text-white hover:text-gray-300 text-4xl font-bold"
+                        >
+                            ×
+                        </button>
+                        <img 
+                            src={imageModal} 
+                            alt="Imagem ampliada" 
+                            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    </div>
                 </div>
             )}
         </div>
