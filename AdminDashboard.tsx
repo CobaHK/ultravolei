@@ -67,7 +67,7 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const exportToPDF = () => {
+    const exportToPDF = async () => {
         const doc = new jsPDF();
         
         doc.setFontSize(18);
@@ -78,36 +78,90 @@ const AdminDashboard: React.FC = () => {
         const totalAtletas = filteredRegistrations.reduce((sum, reg) => sum + reg.atletas.length, 0);
         doc.text(`Total de Equipes: ${filteredRegistrations.length} | Total de Atletas: ${totalAtletas}`, 14, 36);
 
-        const tableData = filteredRegistrations.flatMap((reg) => 
-            reg.atletas.map((atleta) => [
-                reg.nomeEquipe,
-                reg.categoria,
-                reg.nomeTecnico,
-                reg.status.toUpperCase(),
-                atleta.nome,
-                atleta.tipoDocumento.toUpperCase(),
-                atleta.numeroDocumento,
-                atleta.dataNascimento,
-                atleta.numeroJogador,
-            ])
+        // Função para converter imagem em base64
+        const loadImageAsBase64 = (url: string): Promise<string> => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas.toDataURL('image/jpeg'));
+                    } else {
+                        resolve('');
+                    }
+                };
+                img.onerror = () => resolve('');
+                img.src = url;
+            });
+        };
+
+        // Preparar dados e carregar imagens
+        const tableData = await Promise.all(
+            filteredRegistrations.flatMap((reg) => 
+                reg.atletas.map(async (atleta) => {
+                    let imgData = '';
+                    if (atleta.fotoAtleta) {
+                        imgData = await loadImageAsBase64(atleta.fotoAtleta);
+                    }
+                    // Formatar data de aaaa-mm-dd para dd/mm/aaaa
+                    const dataNascimento = atleta.dataNascimento.split('-').reverse().join('/');
+                    return [
+                        imgData,
+                        reg.nomeEquipe,
+                        reg.status.toUpperCase(),
+                        atleta.nome,
+                        atleta.tipoDocumento.toUpperCase(),
+                        atleta.numeroDocumento,
+                        dataNascimento,
+                        atleta.numeroJogador,
+                    ];
+                })
+            )
         );
 
+        // Armazenar as imagens para desenhar depois
+        const images: { [key: string]: string } = {};
+        tableData.forEach((row, index) => {
+            if (row[0]) {
+                images[index] = row[0] as string;
+            }
+        });
+
         autoTable(doc, {
-            head: [['Equipe', 'Categoria', 'Técnico', 'Status', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']],
-            body: tableData,
+            head: [['Foto', 'Equipe', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']],
+            body: tableData.map(row => ['', row[1], row[3], row[4], row[5], row[6], row[7]]),
             startY: 42,
-            styles: { fontSize: 8 },
-            headStyles: { fillColor: [103, 4, 112] },
+            styles: { fontSize: 8, cellPadding: 2, minCellHeight: 18, halign: 'left', valign: 'middle' },
+            headStyles: { fillColor: [103, 4, 112], halign: 'center' },
             columnStyles: {
-                0: { cellWidth: 25 },
-                1: { cellWidth: 20 },
-                2: { cellWidth: 25 },
-                3: { cellWidth: 18 },
+                0: { cellWidth: 18, halign: 'center' },
+                1: { cellWidth: 32 },
+                2: { cellWidth: 38 },
+                3: { cellWidth: 13 },
                 4: { cellWidth: 30 },
-                5: { cellWidth: 12 },
-                6: { cellWidth: 25 },
-                7: { cellWidth: 20 },
-                8: { cellWidth: 10 },
+                5: { cellWidth: 24 },
+                6: { cellWidth: 13 },
+            },
+            didDrawCell: (data) => {
+                if (data.column.index === 0 && data.cell.section === 'body') {
+                    const imageData = images[data.row.index];
+                    if (imageData) {
+                        try {
+                            const imgWidth = 14;
+                            const imgHeight = 14;
+                            const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+                            const y = data.cell.y + (data.cell.height - imgHeight) / 2;
+                            doc.addImage(imageData, 'JPEG', x, y, imgWidth, imgHeight);
+                        } catch (e) {
+                            console.log('Erro ao adicionar imagem:', e);
+                        }
+                    }
+                }
             },
         });
 
