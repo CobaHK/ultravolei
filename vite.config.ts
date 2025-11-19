@@ -5,9 +5,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
-    // Para GitHub Pages: https://cobahk.github.io/ultravolei/
-    // Se usar domínio customizado (www.ultravolei.com.br), mude para base: '/'
-    base: '/ultravolei/',
+    // Para domínio customizado (www.ultravolei.com.br)
+    base: '/',
     server: {
       port: 3000,
       host: '0.0.0.0',
