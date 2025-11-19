@@ -9,8 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "^19.2.0",
+    "firebase": "^12.6.0",
     "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "^7.66.1",
     "react-router-dom": "^7.9.4"
   },
   "devDependencies": {

@@ -31,3 +31,25 @@ export interface InstagramPost {
   imageUrl: string;
   postUrl: string;
 }
+
+export interface Athlete {
+  nome: string;
+  tipoDocumento: 'cpf' | 'rg';
+  numeroDocumento: string;
+  dataNascimento: string;
+  posicao: string;
+  numeroJogador: string;
+}
+
+export interface TeamRegistration {
+  id?: string;
+  nomeEquipe: string;
+  categoria: 'masculino' | 'feminino' | 'misto';
+  nomeTecnico: string;
+  telefoneTecnico?: string;
+  emailTecnico?: string;
+  atletas: Athlete[];
+  fotoEquipe?: string; // URL da foto no Firebase Storage
+  createdAt: Date;
+  status: 'pendente' | 'aprovado' | 'rejeitado';
+}

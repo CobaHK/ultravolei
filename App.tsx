@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, NavLink, Link } from 'react-router-dom';
+import { Routes, Route, NavLink, Link, Navigate } from 'react-router-dom';
 import type { Player, Game, Sponsor } from './types';
 import {
     TEAM_NAME,
@@ -14,7 +14,12 @@ import {
     ClockIcon,
     MapPinIcon,
 } from './constants';
-import holdImage from './hold.jpg';
+import holdImage from './hold.jpeg';
+import RegistrationPage from './RegistrationPage';
+import AdminLoginPage from './AdminLoginPage';
+import AdminDashboard from './AdminDashboard';
+import { auth } from './firebaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const Header: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -26,6 +31,7 @@ const Header: React.FC = () => {
         { to: '/', label: 'Início' },
         { to: '/contato', label: 'Contato' },
         { to: '/patrocinadores', label: 'Patrocinadores' },
+        { to: '/inscricao', label: 'Inscrições 2025' },
 
         // { to: '/sobre', label: 'Sobre Nós' },
     ];
@@ -37,8 +43,25 @@ const Header: React.FC = () => {
                     <Link to="/" className="flex items-center space-x-2">
                         <span className="text-3xl font-bold uppercase text-white font-teko tracking-widest">{TEAM_NAME.split(' ')[0]} <span className="text-orange-500">{TEAM_NAME.split(' ')[1]}</span></span>
                     </Link>
-                    <nav className="hidden lg:flex lg:space-x-8">
-                        {navLinks.map(link => <NavLink key={link.to} to={link.to} className={navLinkClass}>{link.label}</NavLink>)}
+                    <nav className="hidden lg:flex lg:space-x-8 lg:items-center">
+                        {navLinks.map(link => (
+                            <div key={link.to} className="flex items-center gap-2">
+                                <NavLink to={link.to} className={navLinkClass}>
+                                    {link.label}
+                                </NavLink>
+                                {link.to === '/inscricao' && (
+                                    <Link 
+                                        to="/admin/login" 
+                                        className="text-gray-400 hover:text-orange-500 transition-colors"
+                                        title="Área Administrativa"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                                        </svg>
+                                    </Link>
+                                )}
+                            </div>
+                        ))}
                     </nav>
                     <div className="lg:hidden">
                         <button
@@ -61,7 +84,25 @@ const Header: React.FC = () => {
             {isMenuOpen && (
                 <div className="lg:hidden bg-gray-800">
                     <nav className="flex flex-col items-center space-y-4 py-4">
-                        {navLinks.map(link => <NavLink key={link.to} to={link.to} className={navLinkClass} onClick={() => setIsMenuOpen(false)}>{link.label}</NavLink>)}
+                        {navLinks.map(link => (
+                            <div key={link.to} className="flex items-center gap-2">
+                                <NavLink to={link.to} className={navLinkClass} onClick={() => setIsMenuOpen(false)}>
+                                    {link.label}
+                                </NavLink>
+                                {link.to === '/inscricao' && (
+                                    <Link 
+                                        to="/admin/login" 
+                                        className="text-gray-400 hover:text-orange-500 transition-colors"
+                                        title="Área Administrativa"
+                                        onClick={() => setIsMenuOpen(false)}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                                        </svg>
+                                    </Link>
+                                )}
+                            </div>
+                        ))}
                     </nav>
                 </div>
             )}
@@ -313,7 +354,7 @@ const ContactPage: React.FC = () => {
                         <div>
                             <p className="font-bold text-orange-500">Ação Social</p>
                             <p className="text-sm text-gray-400">Faça uma Ação Social</p>
-                            <p className="text-sm text-gray-400">(47) 99666-0160</p>
+                            <p className="text-sm text-gray-400">(47) 99695-5774</p>
                         </div>
                     </a>
                 </div>
@@ -435,14 +476,40 @@ const App: React.FC = () => {
             <main className="flex-grow">
                 <Routes>
                     <Route path="/" element={<HomePage />} />
+                    <Route path="/inscricao" element={<RegistrationPage />} />
                     <Route path="/contato" element={<ContactPage />} />
                     <Route path="/patrocinadores" element={<SponsorsPage />} />
                     <Route path="/sobre" element={<AboutPage />} />
+                    <Route path="/admin/login" element={<AdminLoginPage />} />
+                    <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
                 </Routes>
             </main>
             <Footer />
         </div>
     );
+};
+
+// Protected Route Component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setIsAuthenticated(!!user);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    if (isAuthenticated === null) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+        );
+    }
+
+    return isAuthenticated ? <>{children}</> : <Navigate to="/admin/login" />;
 };
 
 export default App;
