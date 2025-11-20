@@ -156,14 +156,14 @@ const HomePage: React.FC = () => {
             {/* Instagram Feed */}
             <section className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-center mb-8">Últimas Publicações</h3>
-                <iframe
-                    src="https://www.juicer.io/api/feeds/ultravolei_joinville/iframe"
-                    frameBorder="0"
-                    width="100%"
-                    height="1000"
-                    style={{ display: 'block', margin: '0 auto' }}
-                    title="Instagram Feed da UltraVôlei Joinville"
-                ></iframe>
+                <div style={{ position: 'relative', width: '100%', paddingTop: '145.00%' }}>
+                    <iframe 
+                        src="https://rss.app/embed/v1/wall/Kw8TecrL2FNqIVCk" 
+                        frameBorder="0" 
+                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                        title="Instagram Feed da UltraVôlei Joinville"
+                    />
+                </div>
             </section>
 
             {/* Sponsors Bar */}
