@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { signOut } from 'firebase/auth';
-import { db, auth } from './firebaseConfig';
+import { db, auth, storage } from './firebaseConfig';
 import { useNavigate } from 'react-router-dom';
-import type { TeamRegistration } from './types';
+import type { TeamRegistration, Athlete } from './types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -13,6 +14,11 @@ const AdminDashboard: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState<'all' | 'pendente' | 'aprovado' | 'rejeitado'>('all');
     const [imageModal, setImageModal] = useState<string | null>(null);
+    const [editModal, setEditModal] = useState<(TeamRegistration & { id: string }) | null>(null);
+    const [editForm, setEditForm] = useState<TeamRegistration | null>(null);
+    const [teamPhoto, setTeamPhoto] = useState<File | null>(null);
+    const [athletePhotos, setAthletePhotos] = useState<{ [index: number]: File }>({});
+    const [saving, setSaving] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -55,6 +61,134 @@ const AdminDashboard: React.FC = () => {
             } catch (error) {
                 console.error('Erro ao excluir:', error);
             }
+        }
+    };
+
+    const openEditModal = (registration: TeamRegistration & { id: string }) => {
+        setEditModal(registration);
+        setEditForm(JSON.parse(JSON.stringify(registration))); // Deep copy
+        setTeamPhoto(null);
+        setAthletePhotos({});
+    };
+
+    const closeEditModal = () => {
+        setEditModal(null);
+        setEditForm(null);
+        setTeamPhoto(null);
+        setAthletePhotos({});
+    };
+
+    const handleEditFormChange = (field: keyof TeamRegistration, value: any) => {
+        if (editForm) {
+            setEditForm({ ...editForm, [field]: value });
+        }
+    };
+
+    const handleAthleteChange = (index: number, field: keyof Athlete, value: any) => {
+        if (editForm) {
+            const newAtletas = [...editForm.atletas];
+            newAtletas[index] = { ...newAtletas[index], [field]: value };
+            setEditForm({ ...editForm, atletas: newAtletas });
+        }
+    };
+
+    const handleTeamPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setTeamPhoto(e.target.files[0]);
+        }
+    };
+
+    const handleAthletePhotoChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setAthletePhotos({ ...athletePhotos, [index]: e.target.files[0] });
+        }
+    };
+
+    const removeTeamPhoto = () => {
+        setTeamPhoto(null);
+        if (editForm) {
+            setEditForm({ ...editForm, fotoEquipe: undefined });
+        }
+    };
+
+    const removeAthletePhoto = (index: number) => {
+        const newPhotos = { ...athletePhotos };
+        delete newPhotos[index];
+        setAthletePhotos(newPhotos);
+        
+        if (editForm) {
+            const newAtletas = [...editForm.atletas];
+            newAtletas[index] = { ...newAtletas[index], fotoAtleta: undefined };
+            setEditForm({ ...editForm, atletas: newAtletas });
+        }
+    };
+
+    const addAthlete = () => {
+        if (editForm) {
+            const newAthlete: Athlete = {
+                nome: '',
+                tipoDocumento: 'cpf',
+                numeroDocumento: '',
+                dataNascimento: '',
+                numeroJogador: '',
+            };
+            setEditForm({ ...editForm, atletas: [...editForm.atletas, newAthlete] });
+        }
+    };
+
+    const removeAthlete = (index: number) => {
+        if (editForm && window.confirm('Remover este atleta?')) {
+            const newAtletas = editForm.atletas.filter((_, i) => i !== index);
+            setEditForm({ ...editForm, atletas: newAtletas });
+            
+            // Remove foto do atleta se existir
+            const newPhotos = { ...athletePhotos };
+            delete newPhotos[index];
+            setAthletePhotos(newPhotos);
+        }
+    };
+
+    const saveEdit = async () => {
+        if (!editForm || !editModal) return;
+
+        setSaving(true);
+        try {
+            const updatedData: any = {
+                nomeEquipe: editForm.nomeEquipe,
+                categoria: editForm.categoria,
+                nomeTecnico: editForm.nomeTecnico,
+                atletas: editForm.atletas,
+            };
+
+            // Upload team photo if changed
+            if (teamPhoto) {
+                const timestamp = Date.now();
+                const teamPhotoRef = ref(storage, `team-photos/${timestamp}_${teamPhoto.name}`);
+                await uploadBytes(teamPhotoRef, teamPhoto);
+                const teamPhotoUrl = await getDownloadURL(teamPhotoRef);
+                updatedData.fotoEquipe = teamPhotoUrl;
+            } else if (editForm.fotoEquipe !== undefined) {
+                updatedData.fotoEquipe = editForm.fotoEquipe;
+            }
+
+            // Upload athlete photos if changed
+            for (const [indexStr, file] of Object.entries(athletePhotos)) {
+                const index = parseInt(indexStr);
+                const timestamp = Date.now();
+                const athletePhotoRef = ref(storage, `athlete-photos/${timestamp}_${(file as File).name}`);
+                await uploadBytes(athletePhotoRef, file as File);
+                const athletePhotoUrl = await getDownloadURL(athletePhotoRef);
+                updatedData.atletas[index].fotoAtleta = athletePhotoUrl;
+            }
+
+            await updateDoc(doc(db, 'registrations', editModal.id), updatedData);
+            await loadRegistrations();
+            closeEditModal();
+        } catch (error) {
+            console.error('Erro ao salvar edição:', error);
+            alert('Erro ao salvar alterações');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -402,14 +536,254 @@ const AdminDashboard: React.FC = () => {
                                     ⟳ Pendente
                                 </button>
                                 <button
+                                    onClick={() => openEditModal(registration)}
+                                    className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors ml-auto"
+                                >
+                                    ✏️ Editar
+                                </button>
+                                <button
                                     onClick={() => handleDelete(registration.id)}
-                                    className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors ml-auto"
+                                    className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
                                 >
                                     🗑 Excluir
                                 </button>
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {editModal && editForm && (
+                <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-3xl font-bold text-white">Editar Inscrição</h2>
+                            <button
+                                onClick={closeEditModal}
+                                className="text-gray-400 hover:text-white text-3xl"
+                                disabled={saving}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {/* Team Info */}
+                        <div className="space-y-4 mb-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-300 mb-2">Nome da Equipe</label>
+                                <input
+                                    type="text"
+                                    value={editForm.nomeEquipe}
+                                    onChange={(e) => handleEditFormChange('nomeEquipe', e.target.value)}
+                                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:border-purple-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-300 mb-2">Categoria</label>
+                                <select
+                                    value={editForm.categoria}
+                                    onChange={(e) => handleEditFormChange('categoria', e.target.value)}
+                                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:border-purple-500"
+                                >
+                                    <option value="feminino">Feminino</option>
+                                    <option value="masculino">Masculino</option>
+                                    <option value="misto">Misto</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-300 mb-2">Nome do Técnico</label>
+                                <input
+                                    type="text"
+                                    value={editForm.nomeTecnico}
+                                    onChange={(e) => handleEditFormChange('nomeTecnico', e.target.value)}
+                                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:border-purple-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-300 mb-2">Foto da Equipe</label>
+                                <div className="flex items-center gap-4">
+                                    {editForm.fotoEquipe && !teamPhoto && (
+                                        <div className="relative">
+                                            <img src={editForm.fotoEquipe} alt="Equipe" className="w-24 h-24 object-cover rounded-lg" />
+                                            <button
+                                                onClick={removeTeamPhoto}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    )}
+                                    {teamPhoto && (
+                                        <div className="relative">
+                                            <img src={URL.createObjectURL(teamPhoto)} alt="Nova foto" className="w-24 h-24 object-cover rounded-lg" />
+                                            <button
+                                                onClick={() => setTeamPhoto(null)}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleTeamPhotoChange}
+                                        className="text-sm text-gray-300"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Athletes */}
+                        <div className="mb-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-xl font-bold text-white">Atletas</h3>
+                                <button
+                                    onClick={addAthlete}
+                                    className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition-colors"
+                                >
+                                    + Adicionar Atleta
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {editForm.atletas.map((atleta, index) => (
+                                    <div key={index} className="bg-gray-700 p-4 rounded-lg">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="font-semibold text-white">Atleta {index + 1}</h4>
+                                            <button
+                                                onClick={() => removeAthlete(index)}
+                                                className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition-colors text-sm"
+                                            >
+                                                Remover
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs text-gray-300 mb-1">Nome</label>
+                                                <input
+                                                    type="text"
+                                                    value={atleta.nome}
+                                                    onChange={(e) => handleAthleteChange(index, 'nome', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white text-sm focus:outline-none focus:border-purple-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs text-gray-300 mb-1">Tipo de Documento</label>
+                                                <select
+                                                    value={atleta.tipoDocumento}
+                                                    onChange={(e) => handleAthleteChange(index, 'tipoDocumento', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white text-sm focus:outline-none focus:border-purple-500"
+                                                >
+                                                    <option value="cpf">CPF</option>
+                                                    <option value="rg">RG</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs text-gray-300 mb-1">Número do Documento</label>
+                                                <input
+                                                    type="text"
+                                                    value={atleta.numeroDocumento}
+                                                    onChange={(e) => handleAthleteChange(index, 'numeroDocumento', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white text-sm focus:outline-none focus:border-purple-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs text-gray-300 mb-1">Data de Nascimento</label>
+                                                <input
+                                                    type="date"
+                                                    value={atleta.dataNascimento}
+                                                    onChange={(e) => handleAthleteChange(index, 'dataNascimento', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white text-sm focus:outline-none focus:border-purple-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs text-gray-300 mb-1">Número do Jogador</label>
+                                                <input
+                                                    type="text"
+                                                    value={atleta.numeroJogador}
+                                                    onChange={(e) => handleAthleteChange(index, 'numeroJogador', e.target.value)}
+                                                    className="w-full px-3 py-2 bg-gray-600 border border-gray-500 rounded-md text-white text-sm focus:outline-none focus:border-purple-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs text-gray-300 mb-1">Foto do Atleta</label>
+                                                <div className="flex items-center gap-2">
+                                                    {atleta.fotoAtleta && !athletePhotos[index] && (
+                                                        <div className="relative">
+                                                            <img src={atleta.fotoAtleta} alt={atleta.nome} className="w-12 h-12 object-cover rounded" />
+                                                            <button
+                                                                onClick={() => removeAthletePhoto(index)}
+                                                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {athletePhotos[index] && (
+                                                        <div className="relative">
+                                                            <img src={URL.createObjectURL(athletePhotos[index])} alt="Nova" className="w-12 h-12 object-cover rounded" />
+                                                            <button
+                                                                onClick={() => {
+                                                                    const newPhotos = { ...athletePhotos };
+                                                                    delete newPhotos[index];
+                                                                    setAthletePhotos(newPhotos);
+                                                                }}
+                                                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs hover:bg-red-600"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={(e) => handleAthletePhotoChange(index, e)}
+                                                        className="text-xs text-gray-300"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={closeEditModal}
+                                disabled={saving}
+                                className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-500 transition-colors disabled:opacity-50"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={saveEdit}
+                                disabled={saving}
+                                className="bg-purple-500 text-white px-6 py-2 rounded-md hover:bg-purple-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {saving ? (
+                                    <>
+                                        <div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                                        Salvando...
+                                    </>
+                                ) : (
+                                    '💾 Salvar'
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
