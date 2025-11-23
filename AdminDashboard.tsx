@@ -661,9 +661,13 @@ const AdminDashboard: React.FC = () => {
                                         setExportIncludeCpf(true);
                                         setExportModalOpen(true);
                                     }}
-                                    className="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition-colors"
+                                    title="Exportar PDF do time"
+                                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
                                 >
-                                    📄 Exportar Time
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+                                    </svg>
+                                    <span>PDF do Time</span>
                                 </button>
                                 <button
                                     onClick={() => handleDelete(registration.id)}
@@ -679,8 +683,8 @@ const AdminDashboard: React.FC = () => {
 
             {/* Export Team Review Modal */}
             {exportModalOpen && selectedTeamForExport && (
-                <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
-                    <div className="bg-gray-800 rounded-lg max-w-3xl w-full p-6">
+                <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[85vh] overflow-y-auto p-6">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-2xl font-bold text-white">Revisar exportação - {selectedTeamForExport.nomeEquipe}</h2>
                             <button onClick={() => setExportModalOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
@@ -690,7 +694,7 @@ const AdminDashboard: React.FC = () => {
                             <p><strong>Categoria:</strong> {selectedTeamForExport.categoria}</p>
                             <p><strong>Técnico:</strong> {selectedTeamForExport.nomeTecnico}</p>
                             <p className="mt-2"><strong>Atletas ({selectedTeamForExport.atletas.length}):</strong></p>
-                            <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                            <div className="mt-2 space-y-2 max-h-72 overflow-y-auto">
                                 {selectedTeamForExport.atletas.map((a, i) => (
                                     <div key={i} className="flex items-center gap-3">
                                         {a.fotoAtleta && <img src={a.fotoAtleta} alt={a.nome} className="w-10 h-10 object-cover rounded" />}
