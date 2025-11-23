@@ -19,6 +19,9 @@ const AdminDashboard: React.FC = () => {
     const [teamPhoto, setTeamPhoto] = useState<File | null>(null);
     const [athletePhotos, setAthletePhotos] = useState<{ [index: number]: File }>({});
     const [saving, setSaving] = useState(false);
+    const [exportModalOpen, setExportModalOpen] = useState(false);
+    const [selectedTeamForExport, setSelectedTeamForExport] = useState<(TeamRegistration & { id: string }) | null>(null);
+    const [exportIncludeCpf, setExportIncludeCpf] = useState(true);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -208,7 +211,7 @@ const AdminDashboard: React.FC = () => {
         doc.text('Inscrições - UltraVôlei Joinville', 14, 22);
         
         doc.setFontSize(11);
-        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
         const totalAtletas = filteredRegistrations.reduce((sum, reg) => sum + reg.atletas.length, 0);
         doc.text(`Total de Equipes: ${filteredRegistrations.length} | Total de Atletas: ${totalAtletas}`, 14, 36);
 
@@ -244,13 +247,16 @@ const AdminDashboard: React.FC = () => {
                     }
                     // Formatar data de aaaa-mm-dd para dd/mm/aaaa
                     const dataNascimento = atleta.dataNascimento.split('-').reverse().join('/');
+
+                    // Se não incluir CPF/RG, mascarar número quando for CPF ou RG
+                    const numeroDocumento = (!exportIncludeCpf && (atleta.tipoDocumento === 'cpf' || atleta.tipoDocumento === 'rg')) ? '—' : atleta.numeroDocumento;
                     return [
                         imgData,
                         reg.nomeEquipe,
                         reg.status.toUpperCase(),
                         atleta.nome,
                         atleta.tipoDocumento.toUpperCase(),
-                        atleta.numeroDocumento,
+                        numeroDocumento,
                         dataNascimento,
                         atleta.numeroJogador,
                     ];
@@ -269,7 +275,7 @@ const AdminDashboard: React.FC = () => {
         autoTable(doc, {
             head: [['Foto', 'Equipe', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']],
             body: tableData.map(row => ['', row[1], row[3], row[4], row[5], row[6], row[7]]),
-            startY: 42,
+            startY: 48,
             styles: { fontSize: 8, cellPadding: 2, minCellHeight: 18, halign: 'left', valign: 'middle' },
             headStyles: { fillColor: [103, 4, 112], halign: 'center' },
             columnStyles: {
@@ -324,6 +330,101 @@ const AdminDashboard: React.FC = () => {
         XLSX.writeFile(wb, `inscricoes_ultravolei_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
+    const exportTeamPDF = async (team: TeamRegistration & { id: string }, includeCpf: boolean) => {
+        const doc = new jsPDF();
+        doc.setFontSize(18);
+        doc.text(`Inscrição - ${team.nomeEquipe}`, 14, 22);
+
+        doc.setFontSize(11);
+        doc.text(`Técnico: ${team.nomeTecnico || ''}`, 14, 28);
+        doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 36);
+
+        // Função para converter imagem em base64
+        const loadImageAsBase64 = (url: string): Promise<string> => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas.toDataURL('image/jpeg'));
+                    } else {
+                        resolve('');
+                    }
+                };
+                img.onerror = () => resolve('');
+                img.src = url;
+            });
+        };
+
+        const tableData = await Promise.all(
+            team.atletas.map(async (atleta) => {
+                let imgData = '';
+                if (atleta.fotoAtleta) {
+                    imgData = await loadImageAsBase64(atleta.fotoAtleta);
+                }
+                const dataNascimento = atleta.dataNascimento ? atleta.dataNascimento.split('-').reverse().join('/') : '';
+
+                // Se não incluir CPF/RG, mascarar número quando for CPF ou RG
+                const numeroDocumento = (!includeCpf && (atleta.tipoDocumento === 'cpf' || atleta.tipoDocumento === 'rg')) ? '—' : atleta.numeroDocumento;
+
+                return [
+                    imgData,
+                    team.nomeEquipe,
+                    atleta.nome,
+                    atleta.tipoDocumento.toUpperCase(),
+                    numeroDocumento,
+                    dataNascimento,
+                    atleta.numeroJogador,
+                ];
+            })
+        );
+
+        const images: { [key: string]: string } = {};
+        tableData.forEach((row, index) => {
+            if (row[0]) images[index] = row[0] as string;
+        });
+
+        autoTable(doc, {
+            head: [['Foto', 'Equipe', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']],
+            body: tableData.map(row => ['', row[1], row[2], row[3], row[4], row[5], row[6]]),
+            startY: 48,
+            styles: { fontSize: 10, cellPadding: 2, minCellHeight: 18, halign: 'left', valign: 'middle' },
+            headStyles: { fillColor: [103, 4, 112], halign: 'center' },
+            columnStyles: {
+                0: { cellWidth: 18, halign: 'center' },
+                1: { cellWidth: 40 },
+                2: { cellWidth: 46 },
+                3: { cellWidth: 18 },
+                4: { cellWidth: 34 },
+                5: { cellWidth: 28 },
+                6: { cellWidth: 14 },
+            },
+            didDrawCell: (data) => {
+                if (data.column.index === 0 && data.cell.section === 'body') {
+                    const imageData = images[data.row.index];
+                    if (imageData) {
+                        try {
+                            const imgWidth = 14;
+                            const imgHeight = 14;
+                            const x = data.cell.x + (data.cell.width - imgWidth) / 2;
+                            const y = data.cell.y + (data.cell.height - imgHeight) / 2;
+                            doc.addImage(imageData, 'JPEG', x, y, imgWidth, imgHeight);
+                        } catch (e) {
+                            console.log('Erro ao adicionar imagem:', e);
+                        }
+                    }
+                }
+            },
+        });
+
+        doc.save(`inscricao_${team.nomeEquipe.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+    };
+
     const filteredRegistrations = filterStatus === 'all' 
         ? registrations 
         : registrations.filter(r => r.status === filterStatus);
@@ -354,7 +455,19 @@ const AdminDashboard: React.FC = () => {
                     </h1>
                     <p className="text-gray-400">Gerenciar inscrições do campeonato</p>
                 </div>
-                <div className="flex gap-2 mt-4 md:mt-0">
+                <div className="flex items-center gap-4 mt-4 md:mt-0">
+                    <div className="flex items-center text-sm text-gray-300">
+                        <input
+                            id="globalIncludeCpf"
+                            type="checkbox"
+                            checked={exportIncludeCpf}
+                            onChange={(e) => setExportIncludeCpf(e.target.checked)}
+                            className="mr-2"
+                        />
+                        <label htmlFor="globalIncludeCpf">Incluir CPF/RG</label>
+                    </div>
+
+                    <div className="flex gap-2">
                     <button
                         onClick={exportToPDF}
                         className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center gap-2"
@@ -381,6 +494,7 @@ const AdminDashboard: React.FC = () => {
                     >
                         Sair
                     </button>
+                    </div>
                 </div>
             </div>
 
@@ -542,6 +656,16 @@ const AdminDashboard: React.FC = () => {
                                     ✏️ Editar
                                 </button>
                                 <button
+                                    onClick={() => {
+                                        setSelectedTeamForExport(registration);
+                                        setExportIncludeCpf(true);
+                                        setExportModalOpen(true);
+                                    }}
+                                    className="bg-indigo-500 text-white px-4 py-2 rounded-md hover:bg-indigo-600 transition-colors"
+                                >
+                                    📄 Exportar Time
+                                </button>
+                                <button
                                     onClick={() => handleDelete(registration.id)}
                                     className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
                                 >
@@ -550,6 +674,53 @@ const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Export Team Review Modal */}
+            {exportModalOpen && selectedTeamForExport && (
+                <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
+                    <div className="bg-gray-800 rounded-lg max-w-3xl w-full p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold text-white">Revisar exportação - {selectedTeamForExport.nomeEquipe}</h2>
+                            <button onClick={() => setExportModalOpen(false)} className="text-gray-400 hover:text-white text-2xl">×</button>
+                        </div>
+
+                        <div className="mb-4 text-gray-300">
+                            <p><strong>Categoria:</strong> {selectedTeamForExport.categoria}</p>
+                            <p><strong>Técnico:</strong> {selectedTeamForExport.nomeTecnico}</p>
+                            <p className="mt-2"><strong>Atletas ({selectedTeamForExport.atletas.length}):</strong></p>
+                            <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                                {selectedTeamForExport.atletas.map((a, i) => (
+                                    <div key={i} className="flex items-center gap-3">
+                                        {a.fotoAtleta && <img src={a.fotoAtleta} alt={a.nome} className="w-10 h-10 object-cover rounded" />}
+                                        <div>
+                                            <div className="text-white font-semibold">{a.nome}</div>
+                                            <div className="text-sm text-gray-400">{a.tipoDocumento.toUpperCase()}: {a.numeroDocumento}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 mb-4">
+                                    <input id="includeCpf" type="checkbox" checked={exportIncludeCpf} onChange={(e) => setExportIncludeCpf(e.target.checked)} />
+                                    <label htmlFor="includeCpf" className="text-gray-300">Incluir CPF/RG (mostrar números de documentos do tipo CPF ou RG)</label>
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                            <button onClick={() => setExportModalOpen(false)} className="bg-gray-600 text-white px-4 py-2 rounded-md">Cancelar</button>
+                            <button
+                                onClick={async () => {
+                                    setExportModalOpen(false);
+                                    if (selectedTeamForExport) await exportTeamPDF(selectedTeamForExport, exportIncludeCpf);
+                                }}
+                                className="bg-purple-500 text-white px-4 py-2 rounded-md"
+                            >
+                                Exportar PDF
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
