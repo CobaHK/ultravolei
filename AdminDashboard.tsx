@@ -272,13 +272,19 @@ const AdminDashboard: React.FC = () => {
             }
         });
 
-        autoTable(doc, {
-            head: [['Foto', 'Equipe', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']],
-            body: tableData.map(row => ['', row[1], row[3], row[4], row[5], row[6], row[7]]),
-            startY: 48,
-            styles: { fontSize: 8, cellPadding: 2, minCellHeight: 18, halign: 'left', valign: 'middle' },
-            headStyles: { fillColor: [103, 4, 112], halign: 'center' },
-            columnStyles: {
+        // Construir head/body/columnStyles dependendo se vamos incluir Doc/Num Doc
+        const includeDocs = exportIncludeCpf;
+        const head = includeDocs
+            ? [['Foto', 'Equipe', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']]
+            : [['Foto', 'Equipe', 'Atleta', 'Nascimento', 'Nº']];
+
+        const body = tableData.map(row => {
+            if (includeDocs) return ['', row[1], row[3], row[4], row[5], row[6], row[7]];
+            return ['', row[1], row[3], row[6], row[7]];
+        });
+
+        const columnStyles = includeDocs
+            ? {
                 0: { cellWidth: 18, halign: 'center' },
                 1: { cellWidth: 32 },
                 2: { cellWidth: 38 },
@@ -286,7 +292,22 @@ const AdminDashboard: React.FC = () => {
                 4: { cellWidth: 30 },
                 5: { cellWidth: 24 },
                 6: { cellWidth: 13 },
-            },
+            }
+            : {
+                0: { cellWidth: 18, halign: 'center' },
+                1: { cellWidth: 48 },
+                2: { cellWidth: 56 },
+                3: { cellWidth: 40 },
+                4: { cellWidth: 14 },
+            };
+
+        autoTable(doc, {
+            head,
+            body,
+            startY: 48,
+            styles: { fontSize: 8, cellPadding: 2, minCellHeight: 18, halign: 'left', valign: 'middle' },
+            headStyles: { fillColor: [103, 4, 112], halign: 'center' },
+            columnStyles: columnStyles as any,
             didDrawCell: (data) => {
                 if (data.column.index === 0 && data.cell.section === 'body') {
                     const imageData = images[data.row.index];
@@ -389,21 +410,41 @@ const AdminDashboard: React.FC = () => {
             if (row[0]) images[index] = row[0] as string;
         });
 
-        autoTable(doc, {
-            head: [['Foto', 'Equipe', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']],
-            body: tableData.map(row => ['', row[1], row[2], row[3], row[4], row[5], row[6]]),
-            startY: 48,
-            styles: { fontSize: 10, cellPadding: 2, minCellHeight: 18, halign: 'left', valign: 'middle' },
-            headStyles: { fillColor: [103, 4, 112], halign: 'center' },
-            columnStyles: {
-                0: { cellWidth: 18, halign: 'center' },
+        const includeDocsTeam = includeCpf;
+        const headTeam = includeDocsTeam
+            ? [['Foto', 'Equipe', 'Atleta', 'Doc', 'Número Doc', 'Nascimento', 'Nº']]
+            : [['Foto', 'Equipe', 'Atleta', 'Nascimento', 'Nº']];
+
+        const bodyTeam = tableData.map(row => {
+            if (includeDocsTeam) return ['', row[1], row[2], row[3], row[4], row[5], row[6]];
+            return ['', row[1], row[2], row[5], row[6]];
+        });
+
+        const columnStylesTeam = includeDocsTeam
+            ? {
+                0: { cellWidth: 18 },
                 1: { cellWidth: 40 },
                 2: { cellWidth: 46 },
                 3: { cellWidth: 18 },
                 4: { cellWidth: 34 },
                 5: { cellWidth: 28 },
                 6: { cellWidth: 14 },
-            },
+            }
+            : {
+                0: { cellWidth: 18 },
+                1: { cellWidth: 40 },
+                2: { cellWidth: 74 },
+                3: { cellWidth: 40 },
+                4: { cellWidth: 14 },
+            };
+
+        autoTable(doc, {
+            head: headTeam,
+            body: bodyTeam,
+            startY: 48,
+            styles: { fontSize: 10, cellPadding: 2, minCellHeight: 18, halign: 'left', valign: 'middle' },
+            headStyles: { fillColor: [103, 4, 112], halign: 'center' },
+            columnStyles: columnStylesTeam as any,
             didDrawCell: (data) => {
                 if (data.column.index === 0 && data.cell.section === 'body') {
                     const imageData = images[data.row.index];
