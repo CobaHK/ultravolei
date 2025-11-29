@@ -156,14 +156,7 @@ const HomePage: React.FC = () => {
             {/* Instagram Feed */}
             <section className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-wider text-center mb-8">Últimas Publicações</h3>
-                <div style={{ position: 'relative', width: '100%', paddingTop: '145.00%' }}>
-                    <iframe 
-                        src="https://rss.app/embed/v1/wall/Kw8TecrL2FNqIVCk" 
-                        frameBorder="0" 
-                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
-                        title="Instagram Feed da UltraVôlei Joinville"
-                    />
-                </div>
+                <div className="elfsight-app-a41f9c9f-5262-46d9-8cff-d2e15fa3fa5d" data-elfsight-app-lazy></div>
             </section>
 
             {/* Sponsors Bar */}
